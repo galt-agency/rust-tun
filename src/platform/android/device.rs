@@ -25,6 +25,8 @@ use crate::platform::posix::{self, Fd, Tun};
 /// A TUN device for Android.
 pub struct Device {
     tun: Tun,
+    address_: Option<IpAddr>,
+    netmask_: Option<IpAddr>,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {
@@ -53,6 +55,8 @@ impl Device {
 
             Device {
                 tun: Tun::new(tun, mtu, false),
+                address_: config.address,
+                netmask_: config.netmask,
             }
         };
 
@@ -100,10 +104,15 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        if let Some(value) = self.address_ {
+            Ok(value)
+        } else {
+            Err(Error::NotImplemented)
+        }
     }
 
-    fn set_address(&mut self, _value: IpAddr) -> Result<()> {
+    fn set_address(&mut self, value: IpAddr) -> Result<()> {
+        self.address_ = Some(value);
         Ok(())
     }
 
@@ -124,10 +133,15 @@ impl AbstractDevice for Device {
     }
 
     fn netmask(&self) -> Result<IpAddr> {
-        Err(Error::NotImplemented)
+        if let Some(value) = self.netmask_ {
+            Ok(value)
+        } else {
+            Err(Error::NotImplemented)
+        }
     }
 
-    fn set_netmask(&mut self, _value: IpAddr) -> Result<()> {
+    fn set_netmask(&mut self, value: IpAddr) -> Result<()> {
+        self.netmask_ = Some(value);
         Ok(())
     }
 

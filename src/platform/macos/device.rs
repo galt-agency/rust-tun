@@ -51,6 +51,8 @@ pub struct Device {
     tun: posix::Tun,
     ctl: Option<posix::Fd>,
     route: Option<Route>,
+    address_: Option<IpAddr>,
+    netmask_: Option<IpAddr>,
 }
 
 impl AsRef<dyn AbstractDevice + 'static> for Device {
@@ -77,6 +79,8 @@ impl Device {
                 tun: posix::Tun::new(tun, mtu, config.platform_config.packet_information),
                 ctl: None,
                 route: None,
+                address_: config.address,
+                netmask_: config.netmask,
             };
             return Ok(device);
         }
@@ -157,6 +161,8 @@ impl Device {
                 tun: posix::Tun::new(tun, mtu, config.platform_config.packet_information),
                 ctl,
                 route: None,
+                address_: config.address,
+                netmask_: config.netmask,
             }
         };
 
@@ -326,7 +332,9 @@ impl AbstractDevice for Device {
     }
 
     fn address(&self) -> Result<IpAddr> {
-        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
+        let Some(ctl) = self.ctl.as_ref() else {
+            return self.address_.ok_or(Error::InvalidConfig);
+        };
         unsafe {
             let mut req = self.request()?;
             if let Err(err) = siocgifaddr(ctl.as_raw_fd(), &mut req) {
@@ -417,7 +425,9 @@ impl AbstractDevice for Device {
     }
 
     fn netmask(&self) -> Result<IpAddr> {
-        let ctl = self.ctl.as_ref().ok_or(Error::InvalidConfig)?;
+        let Some(ctl) = self.ctl.as_ref() else {
+            return self.netmask_.ok_or(Error::InvalidConfig);
+        };
         unsafe {
             let mut req = self.request()?;
             if let Err(err) = siocgifnetmask(ctl.as_raw_fd(), &mut req) {
